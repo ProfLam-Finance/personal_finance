@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Risk Tolerance Assessment | A Plain Language Guide to Personal Financial Planning</title>
+
+<!--
+  ============================================================================
+  CANVAS LMS EMBEDDING NOTES
+  ============================================================================
+  Canvas does NOT execute uploaded .html files when opened from Canvas
+  Files — it forces them to download instead of rendering them live, so
+  this file must be hosted somewhere that serves it as a real, running web
+  page, then embedded in a Canvas Page/Assignment inside an <iframe>.
+
+  QUICK SETUP:
+  1. Host this file externally over HTTPS. Easiest free option is GitHub
+     Pages:
+       a. Create a public GitHub repo, add this file (e.g. as index.html).
+       b. Repo Settings > Pages > Deploy from branch > main / (root).
+       c. GitHub gives you a URL like:
+          https://YOUR-USERNAME.github.io/YOUR-REPO/
+  2. In Canvas, open (or create) a Page, switch the Rich Content Editor to
+     "</> HTML Editor" (top-left toggle), and paste:
+
+       <iframe
+         src="https://YOUR-USERNAME.github.io/YOUR-REPO/"
+         title="Risk Tolerance Assessment"
+         width="100%"
+         height="750"
+         style="border:1px solid #d0d7de; border-radius:12px;"
+         loading="lazy">
+       </iframe>
+
+     Adjust height (px) so students see the whole card without an inner
+     scrollbar — 700-800px comfortably fits this layout on desktop.
+  3. Save the Page and add it to a Module so it appears in the course nav.
+
+  A NOTE ON JAVASCRIPT IN THE IFRAME:
+  Manually-pasted <iframe> tags in the Canvas HTML Editor are NOT given a
+  restrictive `sandbox` attribute by Canvas, so this file's <script> runs
+  normally — no special "allow-scripts" flag is needed from your side.
+  This page also does not use localStorage/sessionStorage (unsupported or
+  unreliable in many embedded/iframe contexts) — all quiz state lives in
+  ordinary JavaScript variables for the duration of the page view.
+
+  WHY THE LAYOUT BELOW AVOIDS 100vh / viewport-locked centering:
+  Inside an iframe, "100vh" means the height of the IFRAME, not the
+  student's browser window — a rule like `min-height:100vh` can leave
+  large dead space (if the instructor's iframe is taller than the content)
+  or fight with a second, nested scrollbar (if it's shorter). This file
+  instead sizes itself to its natural content height and lets the
+  instructor's iframe height control the visible window.
+  ============================================================================
+-->
+
+<style>
+  /* ============================================================
+     THEME: Accessible pastel, contrasting palette
+     - Backgrounds are soft pastels; text colors are dark enough
+       to meet WCAG AA contrast (4.5:1+) against their backgrounds.
+     - Two accent colors (teal + coral) are used for contrast
+       between "True" and "False", and interactive states.
+     ============================================================ */
+  :root {
+    --bg-page:        #f4f1ea;   /* warm cream page background */
+    --bg-card:        #ffffff;   /* card background */
+    --bg-soft:        #eaf4f2;   /* soft pastel mint panel */
+    --color-text:     #22303c;   /* near-navy, high contrast text */
+    --color-muted:    #52606d;   /* muted slate for subtext */
+
+    --accent-teal:       #2f9e8f;  /* primary accent - True / progress */
+    --accent-teal-dark:  #1f7568;  /* darker teal for hover/contrast text */
+    --accent-coral:      #e0623e;  /* secondary accent - False */
+    --accent-coral-dark: #b6472a;
+
+    --accent-lavender: #a68bd6;  /* used for highlights / focus rings */
+    --accent-yellow:   #f2b705;  /* used for score band 2 */
+
+    --radius-lg: 20px;
+    --radius-md: 12px;
+    --shadow-card: 0 10px 30px rgba(34, 48, 60, 0.10);
+    --shadow-card-hover: 0 14px 34px rgba(34, 48, 60, 0.16);
+
+    --font-base: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg-page);
+    color: var(--color-text);
+    font-family: var(--font-base);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Visually hidden helper for screen-reader-only text */
+  .sr-only {
+    position: absolute;
+    width: 1px; height: 1px;
+    padding: 0; margin: -1px;
+    overflow: hidden;
+    clip: rect(0,0,0,0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  /* Canvas iframe note: no min-height:100vh here on purpose (see the
+     CANVAS LMS EMBEDDING NOTES comment above) — the shell simply sizes to
+     its content and centers horizontally, so it behaves inside an iframe
+     of any host-page-controlled height. */
+  .app-shell {
+    display: flex;
+    justify-content: center;
+    padding: 24px;
+  }
+
+  .card {
+    width: 100%;
+    max-width: 640px;
+    background: var(--bg-card);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-card);
+    padding: 40px clamp(20px, 5vw, 48px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Screens are toggled via the .active class; a fade/slide transition
+     is applied whenever a screen becomes active. */
+  .screen {
+    display: none;
+  }
+  .screen.active {
+    display: block;
+    animation: fadeSlideIn 0.45s ease both;
+  }
+
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateX(24px); }
+    to   { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes fadeSlideOut {
+    from { opacity: 1; transform: translateX(0); }
+    to   { opacity: 0; transform: translateX(-24px); }
+  }
+  .screen.leaving {
+    animation: fadeSlideOut 0.3s ease both;
+  }
+
+  /* ---------- Landing screen ---------- */
+  .logo-text {
+    font-size: 0.85rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent-teal-dark);
+    background: var(--bg-soft);
+    display: inline-block;
+    padding: 8px 14px;
+    border-radius: 999px;
+    margin-bottom: 22px;
+  }
+
+  h1.headline {
+    font-size: clamp(1.6rem, 4vw, 2.2rem);
+    margin: 0 0 14px 0;
+    color: var(--color-text);
+  }
+
+  p.subline {
+    color: var(--color-muted);
+    font-size: 1.02rem;
+    margin: 0 0 30px 0;
+  }
+
+  .btn {
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 14px 28px;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+  }
+  .btn:active { transform: translateY(1px); }
+
+  .btn-primary {
+    background: var(--accent-teal);
+    color: #ffffff;
+  }
+  .btn-primary:hover { background: var(--accent-teal-dark); box-shadow: var(--shadow-card-hover); }
+
+  .btn-primary:focus-visible,
+  .btn-answer:focus-visible,
+  .btn-secondary:focus-visible {
+    outline: 3px solid var(--accent-lavender);
+    outline-offset: 2px;
+  }
+
+  .btn-secondary {
+    background: var(--bg-soft);
+    color: var(--accent-teal-dark);
+  }
+  .btn-secondary:hover { background: #dcefeb; }
+
+  /* ---------- Quiz screen ---------- */
+  .quiz-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .quiz-meta {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    font-weight: 600;
+  }
+
+  .score-indicator {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--accent-teal-dark);
+    background: var(--bg-soft);
+    padding: 6px 12px;
+    border-radius: 999px;
+  }
+
+  /* Progress bar */
+  .progress-track {
+    width: 100%;
+    height: 10px;
+    background: var(--bg-soft);
+    border-radius: 999px;
+    overflow: hidden;
+    margin-bottom: 30px;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, var(--accent-teal), var(--accent-lavender));
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  .question-text {
+    font-size: clamp(1.15rem, 3vw, 1.4rem);
+    font-weight: 600;
+    margin: 0 0 28px 0;
+    min-height: 3em;
+  }
+
+  .answer-group {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 28px;
+    flex-wrap: wrap;
+  }
+
+  .btn-answer {
+    flex: 1 1 140px;
+    font-family: inherit;
+    font-size: 1.05rem;
+    font-weight: 700;
+    padding: 16px 20px;
+    border-radius: var(--radius-md);
+    border: 2px solid transparent;
+    cursor: pointer;
+    background: var(--bg-soft);
+    color: var(--color-text);
+    transition: all 0.15s ease;
+  }
+
+  .btn-answer[data-value="true"] {
+    border-color: var(--accent-teal);
+  }
+  .btn-answer[data-value="true"]:hover,
+  .btn-answer[data-value="true"].selected {
+    background: var(--accent-teal);
+    color: #ffffff;
+  }
+
+  .btn-answer[data-value="false"] {
+    border-color: var(--accent-coral);
+  }
+  .btn-answer[data-value="false"]:hover,
+  .btn-answer[data-value="false"].selected {
+    background: var(--accent-coral);
+    color: #ffffff;
+  }
+
+  .quiz-nav {
+    display: flex;
+    justify-content: flex-end;
+  }
+
+  .btn-primary:disabled {
+    background: #c7d0d6;
+    color: #6b7680;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  /* ---------- Results screen ---------- */
+  .results-score {
+    text-align: center;
+    margin-bottom: 30px;
+  }
+
+  .results-score .big-number {
+    font-size: clamp(3rem, 10vw, 4.5rem);
+    font-weight: 800;
+    color: var(--accent-teal-dark);
+    line-height: 1;
+    display: block;
+  }
+
+  .results-score .out-of {
+    color: var(--color-muted);
+    font-size: 1rem;
+  }
+
+  .interpretation-list {
+    list-style: none;
+    margin: 0 0 30px 0;
+    padding: 0;
+    display: grid;
+    gap: 12px;
+  }
+
+  .interpretation-list li {
+    background: var(--bg-soft);
+    border-radius: var(--radius-md);
+    padding: 14px 18px;
+    color: var(--color-text);
+    border-left: 5px solid var(--accent-teal);
+    font-size: 0.98rem;
+  }
+
+  .interpretation-list li.band-2 { border-left-color: var(--accent-yellow); }
+  .interpretation-list li.band-3 { border-left-color: var(--accent-coral); }
+
+  .interpretation-list li.your-band {
+    box-shadow: var(--shadow-card);
+    font-weight: 700;
+  }
+
+  .results-actions {
+    display: flex;
+    justify-content: center;
+  }
+
+  @media (max-width: 480px) {
+    .card { padding: 30px 20px; }
+    .answer-group { flex-direction: column; }
+  }
+
+  /* Respect reduced motion preference */
+  @media (prefers-reduced-motion: reduce) {
+    .screen.active, .screen.leaving, .progress-fill { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app-shell">
+  <main class="card" id="card">
+
+    <!-- ============================================================
+         SCREEN 1: Landing
+    ============================================================ -->
+    <section class="screen active" id="screen-landing" aria-labelledby="landing-headline">
+      <span class="logo-text">A Plain Language Guide to Personal Financial Planning</span>
+      <h1 class="headline" id="landing-headline">Risk Tolerance Assessment</h1>
+      <p class="subline">
+        This survey is designed to assess your risk tolerance level. You can use the results
+        to help you with your asset allocation decision.
+      </p>
+      <button class="btn btn-primary" id="start-btn" type="button">Start assessment</button>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 2: Quiz
+    ============================================================ -->
+    <section class="screen" id="screen-quiz" aria-labelledby="quiz-question" aria-live="polite">
+      <div class="quiz-header">
+        <span class="quiz-meta" id="quiz-progress-label">Question 1 of 10</span>
+        <span class="score-indicator" id="score-indicator">Score: 0</span>
+      </div>
+
+      <div class="progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0" id="progress-bar" aria-label="Quiz progress">
+        <div class="progress-fill" id="progress-fill"></div>
+      </div>
+
+      <p class="question-text" id="quiz-question"></p>
+
+      <div class="answer-group" role="group" aria-label="Answer choices">
+        <button class="btn-answer" type="button" data-value="true">True</button>
+        <button class="btn-answer" type="button" data-value="false">False</button>
+      </div>
+
+      <div class="quiz-nav">
+        <button class="btn btn-primary" id="next-btn" type="button" disabled>Next</button>
+      </div>
+    </section>
+
+    <!-- ============================================================
+         SCREEN 3: Results
+    ============================================================ -->
+    <section class="screen" id="screen-results" aria-labelledby="results-headline">
+      <div class="results-score">
+        <span class="big-number" id="final-score">0</span>
+        <span class="out-of">out of 10 points</span>
+      </div>
+
+      <h2 class="headline" id="results-headline" style="font-size:1.3rem;">How to interpret your score</h2>
+
+      <ul class="interpretation-list" id="interpretation-list">
+        <li data-band="1" class="band-1">0&ndash;3: You likely have a very high risk tolerance.</li>
+        <li data-band="2" class="band-2">4&ndash;6: You would probably be a nervous investor, but with more knowledge you may increase your risk tolerance.</li>
+        <li data-band="3" class="band-3">7&ndash;10: You are probably a very conservative investor.</li>
+      </ul>
+
+      <div class="results-actions">
+        <button class="btn btn-secondary" id="restart-btn" type="button">Retake assessment</button>
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+  /* ============================================================
+     DATA: The 10 true/false questions.
+     Each question is scored 1 point for "True" and 0 points
+     for "False" per the assignment's scoring rule.
+     ============================================================ */
+  const QUESTIONS = [
+    "If I own stock, I will check its price at least daily if not more often.",
+    "When driving on an interstate, and traffic and weather permit, I never drive in excess of the posted speed limit.",
+    "If the price of my stock declines, my first reaction is to sell the stock.",
+    "I believe another stock market crash similar to 1929 and 2008 could occur very unexpectedly anytime.",
+    "When I fly in less than perfect weather, I tend to get nervous and concerned about my safety.",
+    "If I lose more than 1/4 of my investment in any stock, it would greatly shake my confidence in my own ability as an investor.",
+    "I intensely dislike blind dates.",
+    "When I travel, I write down a packing list to be sure that I don't forget anything.",
+    "When traveling with others, I prefer to do the driving.",
+    "Before buying a stock I would want to talk to at least two other people to confirm my choice."
+  ];
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  let currentIndex = 0;          // index of the question currently shown
+  let answers = new Array(QUESTIONS.length).fill(null); // stores 1 or 0 per question
+
+  /* ============================================================
+     DOM REFERENCES
+     ============================================================ */
+  const screenLanding = document.getElementById('screen-landing');
+  const screenQuiz    = document.getElementById('screen-quiz');
+  const screenResults = document.getElementById('screen-results');
+
+  const startBtn   = document.getElementById('start-btn');
+  const nextBtn    = document.getElementById('next-btn');
+  const restartBtn = document.getElementById('restart-btn');
+
+  const questionText   = document.getElementById('quiz-question');
+  const progressLabel  = document.getElementById('quiz-progress-label');
+  const progressBar    = document.getElementById('progress-bar');
+  const progressFill   = document.getElementById('progress-fill');
+  const scoreIndicator = document.getElementById('score-indicator');
+  const answerButtons  = document.querySelectorAll('.btn-answer');
+
+  const finalScoreEl  = document.getElementById('final-score');
+  const interpretationItems = document.querySelectorAll('#interpretation-list li');
+
+  /* ============================================================
+     HELPER: Switch between screens with a small fade/slide
+     transition. Only one screen has .active at a time.
+     ============================================================ */
+  function showScreen(nextScreen) {
+    const current = document.querySelector('.screen.active');
+    if (current === nextScreen) return;
+
+    if (current) {
+      current.classList.add('leaving');
+      current.classList.remove('active');
+      // Wait for the leave animation to finish before showing the next screen
+      window.setTimeout(() => {
+        current.classList.remove('leaving');
+      }, 300);
+    }
+    nextScreen.classList.add('active');
+  }
+
+  /* ============================================================
+     RENDER: Draw the current question, update progress bar,
+     score indicator, and reset answer button states.
+     ============================================================ */
+  function renderQuestion() {
+    const qNum = currentIndex + 1;
+    questionText.textContent = QUESTIONS[currentIndex];
+    progressLabel.textContent = `Question ${qNum} of ${QUESTIONS.length}`;
+
+    // Progress bar reflects questions completed so far (not counting current)
+    const percentComplete = (currentIndex / QUESTIONS.length) * 100;
+    progressFill.style.width = percentComplete + '%';
+    progressBar.setAttribute('aria-valuenow', currentIndex);
+
+    // Score indicator sums all answered questions so far
+    const scoreSoFar = answers.reduce((sum, val) => sum + (val || 0), 0);
+    scoreIndicator.textContent = `Score: ${scoreSoFar}`;
+
+    // Reset selected state on answer buttons for the new question
+    answerButtons.forEach(btn => btn.classList.remove('selected'));
+
+    // If this question was already answered (e.g., user went back—not
+    // currently possible in this flow, but kept robust), reflect that.
+    const existingAnswer = answers[currentIndex];
+    if (existingAnswer !== null) {
+      const match = existingAnswer === 1 ? 'true' : 'false';
+      document.querySelector(`.btn-answer[data-value="${match}"]`).classList.add('selected');
+      nextBtn.disabled = false;
+    } else {
+      nextBtn.disabled = true;
+    }
+
+    // Update Next button label on last question
+    nextBtn.textContent = (qNum === QUESTIONS.length) ? 'See results' : 'Next';
+  }
+
+  /* ============================================================
+     EVENT: Start assessment
+     ============================================================ */
+  startBtn.addEventListener('click', () => {
+    currentIndex = 0;
+    answers = new Array(QUESTIONS.length).fill(null);
+    renderQuestion();
+    showScreen(screenQuiz);
+  });
+
+  /* ============================================================
+     EVENT: Answer selection (True / False buttons)
+     ============================================================ */
+  answerButtons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const value = btn.getAttribute('data-value') === 'true' ? 1 : 0;
+      answers[currentIndex] = value;
+
+      // Visually mark the selected button, clear the other
+      answerButtons.forEach(b => b.classList.remove('selected'));
+      btn.classList.add('selected');
+
+      // Update live score indicator
+      const scoreSoFar = answers.reduce((sum, val) => sum + (val || 0), 0);
+      scoreIndicator.textContent = `Score: ${scoreSoFar}`;
+
+      nextBtn.disabled = false;
+    });
+  });
+
+  /* ============================================================
+     EVENT: Next / See results button
+     ============================================================ */
+  nextBtn.addEventListener('click', () => {
+    if (answers[currentIndex] === null) return; // safety check
+
+    const isLastQuestion = currentIndex === QUESTIONS.length - 1;
+
+    if (isLastQuestion) {
+      showResults();
+    } else {
+      currentIndex++;
+      renderQuestion();
+    }
+  });
+
+  /* ============================================================
+     RESULTS: Compute total score, highlight the matching
+     interpretation band, and reveal the results screen.
+     ============================================================ */
+  function showResults() {
+    const totalScore = answers.reduce((sum, val) => sum + (val || 0), 0);
+
+    // Fill in progress bar to 100% just before switching screens
+    progressFill.style.width = '100%';
+    progressBar.setAttribute('aria-valuenow', QUESTIONS.length);
+
+    finalScoreEl.textContent = totalScore;
+
+    // Determine which score band applies: 0-3, 4-6, or 7-10
+    let activeBand;
+    if (totalScore <= 3) {
+      activeBand = 1;
+    } else if (totalScore <= 6) {
+      activeBand = 2;
+    } else {
+      activeBand = 3;
+    }
+
+    interpretationItems.forEach(li => {
+      const band = parseInt(li.getAttribute('data-band'), 10);
+      li.classList.toggle('your-band', band === activeBand);
+    });
+
+    showScreen(screenResults);
+  }
+
+  /* ============================================================
+     EVENT: Restart the assessment from the results screen
+     ============================================================ */
+  restartBtn.addEventListener('click', () => {
+    currentIndex = 0;
+    answers = new Array(QUESTIONS.length).fill(null);
+    showScreen(screenLanding);
+  });
+
+</script>
+
+</body>
+</html>
